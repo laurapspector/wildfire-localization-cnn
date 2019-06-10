@@ -4,10 +4,7 @@ This script performs dataset splitting and superpixel segmentation for the wildf
 localization project. It takes as input a directory of whole wildfire images, splits
 them into train/val/test sets, then segments each image into superpixels. It saves
 lists of x (filenames) and y (ground truth labels) for each set as numpy arrays,
-as well as .txt files in the form required by the model h5py.
-
-The script is intended to be called from within the fire-detection-cnn directory, which is also
-where the data directory should be stored.
+as well as .txt files in the form required to generate the TFLearn image preloader.
 '''
 import argparse
 import random
@@ -171,11 +168,13 @@ def isolate_superpixels_second(file, data_dir, path_to_split, threshold=0.25):
 
         # Save ground truth label. Call 'fire' if threshold% of the
         # superpixel overlaps with ground truth fire (default is 25%).
+        # To be consistent with how original model was trained,
+        # fire=0 and nonfire=1
         if (sum_intersection / sum_superpixel) > threshold:
-            y_all_splits[path_to_split.split('/')[-1]].append(1)            
+            y_all_splits[path_to_split.split('/')[-1]].append(0)            
         else:
             # Call 'nonfire'
-            y_all_splits[path_to_split.split('/')[-1]].append(0)
+            y_all_splits[path_to_split.split('/')[-1]].append(1)
 
         # Save binary version superpixels for test images only (for computing IoU)
         if path_to_split.split('/')[-1] == 'test':
@@ -191,7 +190,7 @@ if __name__ == '__main__':
 
     for split in ['train', 'val', 'test']:
 
-        # Save a .txt file for each set that can be used by h5py in the future
+        # Save a .txt file for each set to be use for generating image preloader for training
         with open(os.path.join(args.data_dir, split) + '.txt', 'w') as write_to:
             write_list = [i[0] + ' ' + str(i[1]) for i in zip(x_all_splits[split], y_all_splits[split])]
             for i in range(len(write_list) - 1):
